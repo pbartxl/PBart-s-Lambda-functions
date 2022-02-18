@@ -1,0 +1,41 @@
+Allocateλ = LAMBDA(outputArray, inputArray, [weight],
+    LET(
+        cumulativeOutput, Accumulateλ(outputArray, 0, {0, 1}),
+        cumulativeInput, Accumulateλ(inputArray, 0, {0, 1}),
+        m, ROWS(outputArray),
+        n, ROWS(inputArray),
+        allocationArray, MAKEARRAY(
+            m,
+            n,
+            LAMBDA(k, h,
+                LET(
+                    u, {-1, 1} * INDEX(cumulativeOutput, k, {1, 2}),
+                    v, {-1, 1} * INDEX(cumulativeInput, h, {1, 2}),
+                    d, SUM(IF(u < v, u, v)),
+                    q, IF(d > 0, d, 0),
+                    w, IF(ISOMITTED(weight), 1, INDEX(weight, h)),
+                    q * w
+                )
+            )
+        ),
+        IF(
+            ISOMITTED(weight),
+            allocationArray,
+            BYROW(allocationArray, Sumλ)
+        )
+    )
+);
+
+Accumulateλ = LAMBDA(arr, [init], [opening],
+    LET(
+        acc, SCAN(init, arr, Addλ),
+        open, IF(ISOMITTED(opening), 1, opening),
+        accumulated, IF(open, acc, acc - arr),
+        accumulated
+    )
+);
+
+Addλ = LAMBDA(x, y, (x + y));
+
+
+Sumλ = LAMBDA(x, SUM(x));
