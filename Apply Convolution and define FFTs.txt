@@ -1,0 +1,97 @@
+Convolveλ(array1, array2, [n])
+=LET(
+    n₀,      IF(ISOMITTED(n), MAX(ROWS(array1), ROWS(array2)), n),
+    m₀,      CEILING.MATH(LOG(n₀, 2)),
+    n⁺,      2 ^ m₀,
+    array1⁺, EXPAND(array1, n⁺, 2, 0),
+    array2⁺, EXPAND(array2, n⁺, 2, 0),
+    k,       SEQUENCE(m₀),
+    p,       2 ^ k,
+    dft_array1,  FFTλ(array1⁺, n⁺),
+    dft_array2,  FFTλ(array2⁺),
+    dft_product, cProductλ(dft_array1, dft_array2),
+    convolution, IFFTλ(dft_product),
+    TAKE(ROUND(convolution, 2), , 1)
+);
+
+FFTλ(x, [n])
+=LET(
+    n₀,  IF(ISOMITTED(n), ROWS(x), n),
+    m₀,  CEILING.MATH(LOG(n₀, 2)),
+    n⁺,  2 ^ m₀,
+    x⁺,  EXPAND(x, n⁺, 2, 0),
+    k,   SEQUENCE(m₀),
+    p,   2 ^ k,
+    z,   REDUCE(x⁺, (2 ^ m₀) / p, I⊗S),
+    fft, REDUCE(z, p, I⊗B(1)),
+    Wrapλ(fft, n⁺)
+);
+
+IFFTλ(x, [n])
+=LET(
+    n₀,  IF(ISOMITTED(n), ROWS(x), n),
+    m₀,  CEILING.MATH(LOG(n₀, 2)),
+    n⁺,  2 ^ m₀,
+    x⁺,  EXPAND(x, n⁺, 2, 0),
+    k,   SEQUENCE(m₀),
+    p,   2 ^ k,
+    z,   REDUCE(x⁺, (2 ^ m₀) / p, I⊗S),
+    fft, REDUCE(z, p, I⊗B(-1)) / n⁺,
+    Wrapλ(fft, n⁺)
+);
+
+I⊗S(x, p)
+=LET(
+    w,  Wrapλ(x, 2),
+    x₀, TAKE(w, 1),
+    x₁, TAKE(w, -1),
+    y₀, Wrapλ(x₀, p),
+    y₁, Wrapλ(x₁, p),
+    y,  VSTACK(y₀, y₁),
+    y
+)
+
+I⊗B(sign)
+=LAMBDA(z, p,
+    LET(
+        w,  Ω(p / 2, sign),
+        zˣ, Wrapλ(z, p),
+        z₀, TAKE(zˣ, p / 2),
+        z₁, TAKE(zˣ, -p / 2),
+        τ,  cProductλ(w, z₁),
+        zʹ, VSTACK(z₀ + τ, z₀ - τ),
+        zʹ
+    )
+);
+
+Wrapλ(z, p)
+=WRAPCOLS(TOCOL(z, , 1), p);
+
+cProductλ(w, Z)
+= LET(
+	u, Rℓ(w), 
+	v, Im(w), 
+	X, Rℓ(Z), 
+	Y, Im(Z), 
+	HSTACK(u * X - v * Y, u * Y + v * X)
+  );
+
+Rℓ(z)
+=TAKE(z, , COLUMNS(z) / 2);
+
+
+Im(z)
+=TAKE(z, , -COLUMNS(z) / 2);
+
+Rn(x, [n])
+= LET(
+     m,  IF(ISOMITTED(n), LOG(ROWS(x), 2), LOG(n, 2)),
+     k,  SEQUENCE(m - 1),
+     p,  2 ^ (m - k),
+     REDUCE(x, p, I⊗S)
+);
+
+Wrapλ(z, p)
+=WRAPCOLS(TOCOL(z, , 1), p);
+
+
